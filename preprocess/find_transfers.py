@@ -37,7 +37,7 @@ def extract_entries_and_exits(d, min_dwell_time=15):
     d_entries_and_exits['is_primary_hospital'] = d_entries_and_exits['is_primary_hospital'].map({1: True, 0: False})
     return d_entries_and_exits
 
-def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove_outliers: bool = False) -> pd.DataFrame:
+def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove_outliers: bool = False, outlier_factor: int = 2, outlier_offset: int = 5) -> pd.DataFrame:
     """
     Create a transfer dataframe by matching primary hospital landings with corresponding university hospital landings.
 
@@ -45,6 +45,8 @@ def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove
         d (pd.DataFrame): The input dataframe containing hospital landing data.
         max_transit_time (int): The maximum transit time in hours for matching landings.
         remove_outliers (bool, optional): Whether to remove outliers in transit time. Defaults to False.
+        outlier_factor (int, optional): The factor used to determine the upper threshold for transit time outliers. Defaults to 2.
+        outlier_offset (int, optional): The offset used to determine the upper threshold for transit time outliers. Defaults to 5.
 
     Returns:
         pd.DataFrame: The transfer dataframe containing matched landings and calculated travel information.
@@ -98,7 +100,7 @@ def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove
     d_transfers_merged['transit_time'] = (d_transfers_merged['UTC_receiving'] - d_transfers_merged['UTC_out_sending']).dt.total_seconds() / 60
     
     d_transfers_merged['transit_time_outlier'] = np.where(
-        d_transfers_merged['transit_time'] > (d_transfers_merged['expected_transit_time'] * 2), 
+        d_transfers_merged['transit_time'] > (d_transfers_merged['expected_transit_time'] * outlier_factor + outlier_offset), 
         True, 
         False
     )
@@ -119,11 +121,20 @@ def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=Fal
     - min_dwell_time: The minimum amount of time a person needs to spend at a location to be considered an entry or exit.
     - max_transit_time: The maximum amount of time allowed between an exit and the subsequent entry to be considered a transfer.
     - remove_outliers: A flag indicating whether to remove outliers from the transfer dataframe.
+    - outlier_factor: The factor used to determine outliers in transit time.
+    - outlier_offset: The offset used to determine outliers in transit time.
 
     Returns:
     - final_df: The dataframe containing the transfers.
 
+    Example usage:
+    ```
+    dataset = load_dataset()
+    transfers = find_transfers(dataset, min_dwell_time=10, max_transit_time=2, remove_outliers=True, outlier_factor=2, outlier_offset=5)
+    print(transfers)
+    ```
+
     """
-    d_entries_and_exits = extract_entries_and_exits(d, min_dwell_time)
-    final_df = create_transfer_dataframe(d=d_entries_and_exits, max_transit_time=max_transit_time, remove_outliers=remove_outliers)
+    d_entries_and_exits = extract_entries_and_exits(d, min_dwell_time, outlier_offset, outlier_factor)
+    final_df = create_transfer_dataframe(d=d_entries_and_exits, max_transit_time=max_transit_time, outlier_factor=outlier_factor, outlier_offset=outlier_offset, remove_outliers=remove_outliers)
     return final_df
