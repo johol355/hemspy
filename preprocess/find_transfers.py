@@ -112,7 +112,7 @@ def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove
     
     return d_transfers_merged
 
-def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=False):
+def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=False, outlier_factor=2, outlier_offset=5):
     """
     Finds transfers in a given dataset.
 
@@ -135,6 +135,6 @@ def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=Fal
     ```
 
     """
-    d_entries_and_exits = extract_entries_and_exits(d, min_dwell_time, outlier_offset, outlier_factor)
+    d_entries_and_exits = extract_entries_and_exits(d, min_dwell_time)
     final_df = create_transfer_dataframe(d=d_entries_and_exits, max_transit_time=max_transit_time, outlier_factor=outlier_factor, outlier_offset=outlier_offset, remove_outliers=remove_outliers)
     return final_df
