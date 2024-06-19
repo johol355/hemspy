@@ -41,13 +41,13 @@ def read_flights_data(path='/Users/JO/PhD/hemspy/data/fr24-data/raw-data-unzippe
     flights_df['flight_id'] = flights_df['flight_id'].astype(int)
     return flights_df
 
-def read_positions_data(path='/Users/JO/PhD/hemspy/data/fr24-data/raw-data-unzipped-rearranged/positions', drop_last=False):
+def read_positions_data(path='/Users/JO/PhD/hemspy/data/fr24-data/raw-data-unzipped-rearranged/positions', drop_last=True):
     """
     Read and process flight positions data from CSV files.
 
     Args:
         path (str, optional): The path to the directory containing the CSV files. Defaults to '/Users/JO/PhD/hemspy/data/fr24-data/raw-data-unzipped-rearranged/positions'.
-        drop_last (bool, optional): Whether to drop the last position snapshot for each flight. Defaults to False.
+        drop_last (bool, optional): Whether to drop the last position snapshot for each flight.
 
     Returns:
         pandas.DataFrame: A DataFrame containing the flight positions data with columns ['snapshot_id', 'altitude', 'latitude', 'longitude', 'speed', 'flight_id'].
@@ -67,7 +67,7 @@ def read_positions_data(path='/Users/JO/PhD/hemspy/data/fr24-data/raw-data-unzip
     positions_df = pd.concat(positions_df_list, ignore_index=True)
     positions_df['flight_id'] = positions_df['flight_id'].astype(int)
     if drop_last:
-        positions_df = positions_df.groupby('flight_id').apply(lambda x: x.iloc[:-1], include_groups=False).reset_index(drop=True)
+        positions_df = positions_df.groupby('flight_id').apply(lambda x: x.iloc[:-1], include_groups=False)
     return positions_df
 
 def merge_flights_and_positions_data(positions_df, flights_df):
@@ -111,7 +111,7 @@ def filter_flight_data(d, airports_gdf, include_equip=['EC45', 'A139', 'A169', '
     d = d.groupby('aircraft_id').apply(lambda x: x.sort_values('UTC'), include_groups=False)
     return d
 
-def load_flight_data():
+def load_flight_data(drop_last):
     """
     Process flight data by reading airports, flights, and positions data,
     merging them, and filtering the data based on airports.
@@ -122,7 +122,7 @@ def load_flight_data():
     """
     airports_gdf = read_airports_data(radius_column='radius')
     flights_df = read_flights_data()
-    positions_df = read_positions_data(drop_last=False)
+    positions_df = read_positions_data(drop_last=drop_last)
     d = merge_flights_and_positions_data(positions_df, flights_df)
     d = filter_flight_data(d, airports_gdf)
     return d

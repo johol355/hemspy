@@ -2,7 +2,7 @@ import pandas as pd
 import geopandas
 import numpy as np
 
-def extract_entries_and_exits(d, min_dwell_time=15):
+def extract_entries_and_exits(d):
     """
     Clean the entries and exits data by performing the following operations:
     - Identify transitions into and out of helipad zones
@@ -10,7 +10,7 @@ def extract_entries_and_exits(d, min_dwell_time=15):
     - Keep only entries and exits
     - Create a column for UTC_out of landing zone
     - Keep only the zone dwellings with time longer than min_dwell_time
-    - Clean up the primary hospital ro
+    - Clean up the primary hospital row
     Parameters:
     - d (geopandas.geodataframe.GeoDataFrame): DataFrame containing flights
     - min_dwell_time (int): Minimum time (in minutes) for a zone dwelling to be considere
@@ -32,10 +32,14 @@ def extract_entries_and_exits(d, min_dwell_time=15):
     d_entries_and_exits['UTC_out'] = d_entries_and_exits.groupby('aircraft_id')['UTC'].shift(-1)
     # Keep only the zone dwellings with time longer than min_dwell_time
     d_entries_and_exits['time_in_zone'] = (d_entries_and_exits['in_helipad_zone'] * (d_entries_and_exits['UTC_out'] - d_entries_and_exits['UTC'])).dt.seconds / 60
-    d_entries_and_exits = d_entries_and_exits[d_entries_and_exits['time_in_zone'] > min_dwell_time]
+    
+    # adaptive dwell time
+    flyover_filter = d_entries_and_exits['time_in_zone'] > d_entries_and_exits['dwell_time']
+    d_entries_and_exits_no_flyovers = d_entries_and_exits[flyover_filter]
+
     # Clean up primary hospital row
-    d_entries_and_exits['is_primary_hospital'] = d_entries_and_exits['is_primary_hospital'].map({1: True, 0: False})
-    return d_entries_and_exits
+    d_entries_and_exits_no_flyovers['is_primary_hospital'] = d_entries_and_exits_no_flyovers['is_primary_hospital'].map({1: True, 0: False})
+    return d_entries_and_exits_no_flyovers
 
 def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove_outliers: bool = False, outlier_factor: int = 2, outlier_offset: int = 5) -> pd.DataFrame:
     """
@@ -112,7 +116,7 @@ def create_transfer_dataframe(d: pd.DataFrame, max_transit_time: int = 3, remove
     
     return d_transfers_merged
 
-def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=False, outlier_factor=2, outlier_offset=5):
+def find_transfers(d, max_transit_time=3, remove_outliers=False, outlier_factor=2, outlier_offset=5):
     """
     Finds transfers in a given dataset.
 
@@ -135,6 +139,6 @@ def find_transfers(d, min_dwell_time=15, max_transit_time=3, remove_outliers=Fal
     ```
 
     """
-    d_entries_and_exits = extract_entries_and_exits(d, min_dwell_time)
+    d_entries_and_exits = extract_entries_and_exits(d)
     final_df = create_transfer_dataframe(d=d_entries_and_exits, max_transit_time=max_transit_time, outlier_factor=outlier_factor, outlier_offset=outlier_offset, remove_outliers=remove_outliers)
     return final_df
