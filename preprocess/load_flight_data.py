@@ -111,7 +111,7 @@ def filter_flight_data(d, airports_gdf, include_equip=['EC45', 'A139', 'A169', '
     d = d.groupby('aircraft_id').apply(lambda x: x.sort_values('UTC'), include_groups=False)
     return d
 
-def load_flight_data(drop_last):
+def load_flight_data(drop_last, path_airports_data, path_flights_data):
     """
     Process flight data by reading airports, flights, and positions data,
     merging them, and filtering the data based on airports.
@@ -120,8 +120,8 @@ def load_flight_data(drop_last):
         DataFrame: Processed flight data.
 
     """
-    airports_gdf = read_airports_data(radius_column='radius')
-    flights_df = read_flights_data()
+    airports_gdf = read_airports_data(path=path_airports_data, radius_column='radius')
+    flights_df = read_flights_data(path=path_flights_data)
     positions_df = read_positions_data(drop_last=drop_last)
     d = merge_flights_and_positions_data(positions_df, flights_df)
     d = filter_flight_data(d, airports_gdf)
